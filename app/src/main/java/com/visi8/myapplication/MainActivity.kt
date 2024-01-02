@@ -15,63 +15,60 @@ import android.view.WindowManager
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
-import javax.crypto.spec.IvParameterSpec
+import android.webkit.WebChromeClient
 import java.security.KeyStore
 
-class KeystoreHelper {
-    companion object {
-        private const val KEY_ALIAS = "Visi8WebcomicCookieKey"
-        private const val ANDROID_KEYSTORE = "AndroidKeyStore"
-        private const val TRANSFORMATION = "AES/CBC/PKCS7Padding"
-    }
-
-    init {
-        createKey()
-    }
-
-    private fun createKey() {
-        val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
-        val keyGenParameterSpec = KeyGenParameterSpec.Builder(KEY_ALIAS,
-            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-            .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
-            .build()
-        keyGenerator.init(keyGenParameterSpec)
-        keyGenerator.generateKey()
-    }
-
-    private fun getSecretKey(): SecretKey {
-        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
-        keyStore.load(null)
-        return keyStore.getKey(KEY_ALIAS, null) as SecretKey
-    }
-
-    fun encrypt(data: String): String {
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, getSecretKey())
-        val iv = cipher.iv
-        val encrypted = cipher.doFinal(data.toByteArray(Charsets.UTF_8))
-        return Base64.encodeToString(iv + encrypted, Base64.DEFAULT)
-    }
-
-    fun decrypt(data: String): String {
-        val dataArray = Base64.decode(data, Base64.DEFAULT)
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        val ivSpec = IvParameterSpec(dataArray.copyOfRange(0, 16))
-        cipher.init(Cipher.DECRYPT_MODE, getSecretKey(), ivSpec)
-        val decrypted = cipher.doFinal(dataArray.copyOfRange(16, dataArray.size))
-        return String(decrypted, Charsets.UTF_8)
-    }
-}
+//class KeystoreHelper {
+//    companion object {
+//        private const val KEY_ALIAS = "Visi8WebcomicCookieKey"
+//        private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+//        private const val TRANSFORMATION = "AES/CBC/PKCS7Padding"
+//    }
+//
+//    init {
+//        createKey()
+//    }
+//
+//    private fun createKey() {
+//        val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
+//        val keyGenParameterSpec = KeyGenParameterSpec.Builder(KEY_ALIAS,
+//            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+//            .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+//            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+//            .build()
+//        keyGenerator.init(keyGenParameterSpec)
+//        keyGenerator.generateKey()
+//    }
+//
+//    private fun getSecretKey(): SecretKey {
+//        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+//        keyStore.load(null)
+//        return keyStore.getKey(KEY_ALIAS, null) as SecretKey
+//    }
+//
+//    fun encrypt(data: String): String {
+//        val cipher = Cipher.getInstance(TRANSFORMATION)
+//        cipher.init(Cipher.ENCRYPT_MODE, getSecretKey())
+//        val iv = cipher.iv
+//        val encrypted = cipher.doFinal(data.toByteArray(Charsets.UTF_8))
+//        return Base64.encodeToString(iv + encrypted, Base64.DEFAULT)
+//    }
+//
+//    fun decrypt(data: String): String {
+//        val dataArray = Base64.decode(data, Base64.DEFAULT)
+//        val cipher = Cipher.getInstance(TRANSFORMATION)
+//        val ivSpec = IvParameterSpec(dataArray.copyOfRange(0, 16))
+//        cipher.init(Cipher.DECRYPT_MODE, getSecretKey(), ivSpec)
+//        val decrypted = cipher.doFinal(dataArray.copyOfRange(16, dataArray.size))
+//        return String(decrypted, Charsets.UTF_8)
+//    }
+//}
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private lateinit var sharedPreferences: SharedPreferences
-    private lateinit var keystoreHelper: KeystoreHelper
+//    private lateinit var keystoreHelper: KeystoreHelper
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
@@ -101,20 +98,18 @@ class MainActivity : AppCompatActivity() {
         val cookieManager = CookieManager.getInstance()
         val cookieString = cookieManager.getCookie("https://rqcbppup9ngtdtz1mazunlsap7ywijlzugrryfgbb4lk0sqjny.web.app/")
         if (cookieString != null) {
-            val encryptedCookies = keystoreHelper.encrypt(cookieString) // Encrypt the cookies
             sharedPreferences.edit().apply {
-                putString("encrypted_cookies", encryptedCookies)
+                putString("cookies", cookieString)
                 apply()
             }
         }
     }
 
     private fun loadCookies() {
-        val encryptedCookies = sharedPreferences.getString("encrypted_cookies", null)
-        encryptedCookies?.let {
-            val decryptedCookies = keystoreHelper.decrypt(it) // Decrypt the cookies
+        val cookies = sharedPreferences.getString("cookies", null)
+        cookies?.let {
             val cookieManager = CookieManager.getInstance()
-            decryptedCookies.split(";").forEach { cookie ->
+            it.split(";").forEach { cookie ->
                 cookieManager.setCookie("https://rqcbppup9ngtdtz1mazunlsap7ywijlzugrryfgbb4lk0sqjny.web.app/", cookie)
             }
         }
@@ -126,16 +121,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveLocalStorageData(data: String) {
-        val encryptedData = keystoreHelper.encrypt(data)
-        sharedPreferences.edit().putString("localStorageData", encryptedData).apply()
+        sharedPreferences.edit().putString("localStorageData", data).apply()
     }
 
     private fun loadLocalStorageData() {
         val encryptedData = sharedPreferences.getString("localStorageData", null)
         encryptedData?.let {
-            val data = keystoreHelper.decrypt(it)
             webView.evaluateJavascript(
-                "(function() { var data = $data; for (var key in data) { localStorage.setItem(key, data[key]); } })();",
+                "(function() { var data = $it; for (var key in data) { localStorage.setItem(key, data[key]); } })();",
                 null
             )
         }
@@ -145,7 +138,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         sharedPreferences = getSharedPreferences("WebViewCookies", Context.MODE_PRIVATE)
-        keystoreHelper = KeystoreHelper()
         // Prevent taking screenshots and recording screen
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
@@ -168,6 +160,7 @@ class MainActivity : AppCompatActivity() {
             settings.mediaPlaybackRequiresUserGesture = false
             settings.useWideViewPort = true
             settings.loadWithOverviewMode = true
+            settings.pluginState = WebSettings.PluginState.ON
 
             webViewClient = object : WebViewClient() {
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
