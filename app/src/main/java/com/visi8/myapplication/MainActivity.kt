@@ -12,9 +12,11 @@ import android.webkit.WebViewClient
 import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.view.WindowManager
+import android.util.Log
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.view.KeyEvent
 import android.webkit.WebChromeClient
 import java.security.KeyStore
 
@@ -70,6 +72,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sharedPreferences: SharedPreferences
 //    private lateinit var keystoreHelper: KeystoreHelper
 
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        if (event?.keyCode == 4 && webView.canGoBack()) {
+            webView.goBack()
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         intent?.let { handleIntent(it) }
@@ -87,8 +97,9 @@ class MainActivity : AppCompatActivity() {
     private fun navigateToPage(uri: Uri) {
         uri.let {
             val pathSegments = it.pathSegments
-            if (pathSegments.size >= 3 && pathSegments[0] == "comic") {
-                val newUrl = "https://rqcbppup9ngtdtz1mazunlsap7ywijlzugrryfgbb4lk0sqjny.web.app/comic/${pathSegments[1]}/chapter/${pathSegments[2]}/"
+            Log.d("navigateToPage", pathSegments.joinToString())
+            if (pathSegments.size >= 2) {
+                val newUrl = "https://rqcbppup9ngtdtz1mazunlsap7ywijlzugrryfgbb4lk0sqjny.web.app/comic/${pathSegments[0]}/chapter/${pathSegments[1]}/"
                 webView.loadUrl(newUrl)
             }
         }
@@ -121,14 +132,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveLocalStorageData(data: String) {
+        Log.d("saveLocalStorageData", data)
         sharedPreferences.edit().putString("localStorageData", data).apply()
+    }
+
+    private fun deleteLocalStorageData() {
+        sharedPreferences.edit().remove("localStorageData").apply()
     }
 
     private fun loadLocalStorageData() {
         val encryptedData = sharedPreferences.getString("localStorageData", null)
         encryptedData?.let {
+            Log.d("loadLocalStorageData", it)
             webView.evaluateJavascript(
-                "(function() { var data = $it; for (var key in data) { localStorage.setItem(key, data[key]); } })();",
+                "(function() { var data = JSON.parse($it); for (var key in data) { localStorage.setItem(key, data[key]); } })();",
                 null
             )
         }
@@ -136,6 +153,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("onCreate", "start")
 
         sharedPreferences = getSharedPreferences("WebViewCookies", Context.MODE_PRIVATE)
         // Prevent taking screenshots and recording screen
@@ -150,6 +168,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(webView)
 
         webView.apply {
+            Log.d("onCreate", "apply webview")
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.allowContentAccess = true
