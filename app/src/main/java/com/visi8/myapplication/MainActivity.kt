@@ -13,6 +13,7 @@ import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.view.WindowManager
 import android.util.Log
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
@@ -155,6 +156,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Log.d("onCreate", "start")
 
+        val deviceModel = Build.MODEL
+        val chromeVersion = "120.0.6099.109" // Replace with the desired Chrome version
+        val androidVersion = Build.VERSION.RELEASE
+        val customUserAgent = "Mozilla/5.0 (Linux; Android $androidVersion; $deviceModel) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$chromeVersion Mobile Safari/537.36"
+
         sharedPreferences = getSharedPreferences("WebViewCookies", Context.MODE_PRIVATE)
         // Prevent taking screenshots and recording screen
         window.setFlags(
@@ -180,6 +186,7 @@ class MainActivity : AppCompatActivity() {
             settings.useWideViewPort = true
             settings.loadWithOverviewMode = true
             settings.pluginState = WebSettings.PluginState.ON
+            settings.userAgentString = customUserAgent
 
             webViewClient = object : WebViewClient() {
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
