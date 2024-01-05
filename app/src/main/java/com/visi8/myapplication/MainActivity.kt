@@ -100,8 +100,13 @@ class MainActivity : AppCompatActivity() {
             val pathSegments = it.pathSegments
             Log.d("navigateToPage", pathSegments.joinToString())
             if (pathSegments.size >= 2) {
-                val newUrl = "https://rqcbppup9ngtdtz1mazunlsap7ywijlzugrryfgbb4lk0sqjny.web.app/comic/${pathSegments[0]}/chapter/${pathSegments[1]}/"
-                webView.loadUrl(newUrl)
+                if (pathSegments[0] == "ping" && pathSegments[1] == "pong") {
+                    val newUrl = "https://rqcbppup9ngtdtz1mazunlsap7ywijlzugrryfgbb4lk0sqjny.web.app/ping-pong/"
+                    webView.loadUrl(newUrl)
+                } else {
+                    val newUrl = "https://rqcbppup9ngtdtz1mazunlsap7ywijlzugrryfgbb4lk0sqjny.web.app/comic/${pathSegments[0]}/chapter/${pathSegments[1]}/"
+                    webView.loadUrl(newUrl)
+                }
             }
         }
     }

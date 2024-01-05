@@ -11,8 +11,8 @@ android {
         applicationId "com.visi8.myapplication"
         minSdk 24
         targetSdk 33
-        versionCode 11
-        versionName "0.0.11"
+        versionCode 13
+        versionName "0.0.13"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
